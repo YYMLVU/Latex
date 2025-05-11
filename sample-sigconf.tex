@@ -71,6 +71,7 @@
 %%\acmBooktitle{Woodstock '18: ACM Symposium on Neural Gaze Detection,
 %%  June 03--05, 2018, Woodstock, NY}
 \acmISBN{978-1-4503-XXXX-X/2025/05}
+\raggedbottom % 防止均匀分布垂直空白
 
 
 %%
@@ -207,20 +208,21 @@
 %% The abstract is a short summary of the work to be presented in the
 %% article.
 \begin{abstract}
-  The growing complexity of IoT systems has made time-seriess anomaly detection critical
-for ensuring operational reliability and security. However, existing methods often
-struggle with limited labeled data and highly imbalanced normal/abnormal distributions
-in real-world IoT environments. In this work, we propose a novel contrastive learning
-framework for time-series anomaly detection, which leverages the power of self-supervised
-learning to learn robust representations from unlabeled data. Our approach employs a
-contrastive loss function to maximize the similarity between augmented views of the same
-time-series instance while minimizing the similarity between different instances. This
-enables the model to learn meaningful features that can effectively distinguish between
-normal and abnormal patterns. We evaluate our method on several benchmark datasets and
-demonstrate its superior performance compared to state-of-the-art anomaly detection
-algorithms. Our results show that our contrastive learning framework can significantly
-improve the detection accuracy and robustness of time-series anomaly detection in IoT
-systems.
+  The Internet of Things (IoT) generates vast time-series data from interconnected devices, 
+where anomalies may indicate critical failures, cyber threats, or operational inefficiencies. 
+Despite advances in anomaly detection, challenges persist due to complex temporal patterns, 
+scarcity of labeled anomalies, and intricate dependencies in multivariate data. 
+Traditional unsupervised methods often fail to capture temporal dynamics or suffer from high 
+computational costs, while deep learning approaches struggle with representation consistency across domains. 
+In this work proposes a Time-Frequency Transformer Model for multivariate 
+time-series anomaly detection, leveraging dual-path reconstruction in time and frequency domains to exploit the 
+inherent instability of anomalous patterns. Key innovations include: (1) a cross-domain reconstruction error analysis 
+to enhance anomaly discrimination, (2) a multi-perspective contrastive learning mechanism for robust 
+feature representation, and (3) a hierarchical loss aggregation strategy that computes stage-wise reconstruction 
+errors for improved sensitivity.Extensive experiments on univariate and multivariate datasets demonstrate that 
+our model surpasses state-of-the-art baselines, achieving superior detection performance. 
+The framework’s ability to integrate temporal and spectral insights offers broad applicability in IoT domains, 
+from infrastructure monitoring to predictive maintenance.
 \end{abstract}
 
 %%
@@ -282,580 +284,313 @@ systems.
 \maketitle
 
 \section{Introduction}
-ACM's consolidated article template, introduced in 2017, provides a
-consistent \LaTeX\ style for use across ACM publications, and
-incorporates accessibility and metadata-extraction functionality
-necessary for future Digital Library endeavors. Numerous ACM and
-SIG-specific \LaTeX\ templates have been examined, and their unique
-features incorporated into this single new template.
 
-If you are new to publishing with ACM, this document is a valuable
-guide to the process of preparing your work for publication. If you
-have published with ACM before, this document provides insight and
-instruction into more recent changes to the article template.
+The Internet of Things (IoT) has become a cornerstone of modern industry and everyday life, 
+enabling seamless connectivity among computing devices, mechanical systems, and
+digital machines. These interconnected devices, each assigned unique identifiers,
+autonomously collect and transmit data across networks, generating time-series
+signals that reflect system dynamics. Despite their widespread adoption,
+IoT systems remain susceptible to various security risks and operational vulnerabilities.
 
-The ``\verb|acmart|'' document class can be used to prepare articles
-for any ACM publication --- conference or journal, and for any stage
-of publication, from review to final ``camera-ready'' copy, to the
-author's own version, with {\itshape very} few changes to the source.
+Anomalies in IoT data can arise from unexpected technical malfunctions, human errors,
+or malicious intrusions, potentially disrupting system stability and leading to service failures.
+For instance, in a distributed server environment, real-time monitoring of performance metrics—such as user traffic,
+CPU utilization, and memory consumption—is essential. The presence of outliers in these metrics may signal cyber
+threats or system inefficiencies, underscoring the importance of
+anomaly detection in maintaining operational integrity and cybersecurity.
 
-\section{Template Overview}
-As noted in the introduction, the ``\verb|acmart|'' document class can
-be used to prepare many different kinds of documentation --- a
-double-anonymous initial submission of a full-length technical paper, a
-two-page SIGGRAPH Emerging Technologies abstract, a ``camera-ready''
-journal article, a SIGCHI Extended Abstract, and more --- all by
-selecting the appropriate {\itshape template style} and {\itshape
-  template parameters}.
+Similarly, in industrial IoT applications, sensor anomalies often indicate critical
+failures requiring immediate intervention. Consider a water distribution (WADI) system 
+equipped with sensors to monitor water quality. Anomalous readings during disinfection 
+could suggest hazardous chlorine levels, necessitating rapid alerts to prevent 
+health risks. Thus, time-series anomaly detection has emerged as a vital tool across IoT 
+domains, including infrastructure management, health monitoring, 
+and predictive maintenance.
 
-This document will explain the major features of the document
-class. For further information, the {\itshape \LaTeX\ User's Guide} is
-available from
-\url{https://www.acm.org/publications/proceedings-template}.
+Although anomaly detection techniques have broad applicability, 
+achieving precise anomaly identification in complex time-series data 
+still faces several critical challenges.First, time-series data often 
+exhibit multiple intricate patterns, including but not limited to 
+seasonality, trends, and periodicity. Effectively distinguishing these 
+patterns while accurately detecting anomalies within them remains 
+a significant difficulty. Second, anomalous events are inherently rare 
+in real-world scenarios, making it challenging to obtain sufficient high-quality 
+labeled training data. This scarcity hinders the development of robust 
+supervised learning models. Third, the temporal and feature-wise 
+dependencies embedded in time-series data must be carefully considered. 
+The ability of an anomaly detection model to properly capture and 
+process these dependencies is crucial for reliable performance.
 
-\subsection{Template Styles}
+Anomalous data exhibits two inherent characteristics that make detection 
+challenging: its scarcity compared to normal data and its concealment within 
+large volumes of regular observations. To address the scarcity of 
+both labeled anomalies and anomaly examples, researchers have developed 
+numerous unsupervised learning approaches.These conventional unsupervised 
+methods employ diverse strategies for distinguishing normal patterns from 
+anomalies and have demonstrated reasonable effectiveness. However, they 
+suffer from three critical limitations: (1) failure to account for temporal 
+dependencies in time-series data, (2) high computational complexity when 
+processing large-scale datasets, and (3) heightened sensitivity to parameter 
+configurations. These constraints ultimately restrict their detection 
+performance and practical applicability.Unsupervised approaches extend beyond 
+conventional machine learning methods, with numerous deep learning models now employing 
+unsupervised techniques for time-series anomaly detection. These 
+methods share a common underlying principle: they exploit dual perspectives 
+to create significant divergence between normal and anomalous data in either feature 
+space representation or reconstruction outcomes, thereby enabling effective anomaly discrimination.
 
-The primary parameter given to the ``\verb|acmart|'' document class is
-the {\itshape template style} which corresponds to the kind of publication
-or SIG publishing the work. This parameter is enclosed in square
-brackets and is a part of the {\verb|documentclass|} command:
-\begin{verbatim}
-  \documentclass[STYLE]{acmart}
-\end{verbatim}
+Inspired by these approaches, we observe that normal samples maintain representation 
+consistency during multi-perspective feature learning and reconstruction, 
+while anomalous samples exhibit unstable cross-dimensional representations due to 
+their inherent pattern instability, making it difficult to achieve consistent or 
+approximate reconstruction results. Furthermore, according to the uncertainty principle 
+of time series representation, anomaly data that demonstrates significant representational 
+advantages in either the time or frequency domain typically fails to maintain comparable 
+performance in the corresponding counterpart domain.Building upon these insights, 
+this paper proposes a Time-Frequency Transformer Based Model for Multivariate Time Series Anomaly Detection. 
+The model simultaneously performs feature representation and reconstruction in both 
+time and frequency domains, effectively capturing anomalies by comparing the discrepancies between 
+reconstruction results across these dual domains.Notably, our approach introduces 
+a significant improvement over conventional methods that only compute reconstruction loss 
+at the final stage. Instead, we implement a stage-wise loss aggregation mechanism that 
+calculates and averages the reconstruction loss at each processing stage. This enhancement 
+has demonstrably improved the model's overall performance.
 
-Journals use one of three template styles. All but three ACM journals
-use the {\verb|acmsmall|} template style:
+In summary, the contributions of our work are as follows.
 \begin{itemize}
-\item {\texttt{acmsmall}}: The default journal template style.
-\item {\texttt{acmlarge}}: Used by JOCCH and TAP.
-\item {\texttt{acmtog}}: Used by TOG.
+\item We propose a novel anomaly detection framework that effectively integrates 
+time-domain and frequency-domain information. The model performs dual-path reconstruction 
+from both temporal and spectral perspectives, enabling accurate discrimination between 
+normal and anomalous patterns through cross-domain reconstruction error analysis.
+\item We develop a multi-perspective contrastive learning mechanism that systematically 
+compares temporal and spectral representations. This approach facilitates comprehensive 
+exploration of feature extraction across different data modalities.
+\item We introduce a hierarchical reconstruction loss aggregation strategy that computes 
+and averages mean squared errors at each processing stage. This novel loss computation 
+method significantly enhances the model's detection capability by capturing multi-scale reconstruction discrepancies.
+\item Extensive experimental results demonstrate that our model outperforms existing 
+baseline methods across multiple univariate and multivariate datasets, establishing 
+new state-of-the-art performance benchmarks.
 \end{itemize}
 
-The majority of conference proceedings documentation will use the {\verb|acmconf|} template style.
-\begin{itemize}
-\item {\texttt{sigconf}}: The default proceedings template style.
-\item{\texttt{sigchi}}: Used for SIGCHI conference articles.
-\item{\texttt{sigplan}}: Used for SIGPLAN conference articles.
-\end{itemize}
+\section{Related Work}
 
-\subsection{Template Parameters}
+\subsection{Prediction-Based Anomaly Detection Models}
 
-In addition to specifying the {\itshape template style} to be used in
-formatting your work, there are a number of {\itshape template parameters}
-which modify some part of the applied template style. A complete list
-of these parameters can be found in the {\itshape \LaTeX\ User's Guide.}
+The fundamental principle of prediction-based anomaly detection models involves training 
+models on historical data to forecast future values, with anomalies identified through discrepancies 
+between predicted and observed time series. Data points exhibiting deviations beyond 
+a predefined threshold are classified as anomalous.Several notable approaches have advanced this paradigm:
+THOC employs multi-scale dilated convolutional recurrent neural networks with skip connections to capture 
+temporal dynamics, coupled with a hierarchical clustering process that generates multiple hyperspheres 
+to define its novel Multiscale Vector Data Description objective \cite{shen2020timeseries}.
+Hundman et al. developed an LSTM-based forecasting model integrated with an unsupervised, 
+parameter-free thresholding technique for monitoring anomalies in spacecraft telemetry data \cite{hundman2018detecting}.
+Ren et al. designed a hybrid algorithm combining Spectral Residual (SR) analysis with Convolutional 
+Neural Networks (CNNs) for anomaly detection in Microsoft service operations \cite{ren2019time}.
+Ahmad et al. proposed a Hierarchical Temporal Memory (HTM) model, an unsupervised online sequence 
+memory algorithm for real-time anomaly detection in data streams \cite{ahmad2017unsupervised}.
+While prediction-based methods demonstrate strong performance in modeling temporal progression, 
+they face two critical limitations: 
+(1) susceptibility to noise and artifacts in historical training data, 
+and (2) potential failure to detect non-conventional anomalies due to their rigid definition of deviation patterns.
 
-Frequently-used parameters, or combinations of parameters, include:
-\begin{itemize}
-\item {\texttt{anonymous,review}}: Suitable for a ``double-anonymous''
-  conference submission. Anonymizes the work and includes line
-  numbers. Use with the \texttt{\string\acmSubmissionID} command to print the
-  submission's unique ID on each page of the work.
-\item{\texttt{authorversion}}: Produces a version of the work suitable
-  for posting by the author.
-\item{\texttt{screen}}: Produces colored hyperlinks.
-\end{itemize}
+\subsection{Reconstruction-Based Anomaly Detection Models}
 
-This document uses the following string as the first command in the
-source file:
-\begin{verbatim}
-\documentclass[sigconf]{acmart}
-\end{verbatim}
+Reconstruction-based anomaly detection models typically employ an encoder-decoder architecture, 
+where the encoder maps raw time series into a latent space representation and the decoder attempts 
+to reconstruct the original sequence from this compressed form. Data points exhibiting reconstruction 
+errors exceeding a predetermined threshold are identified as anomalies.
+The Variational Autoencoder (VAE) represents a fundamental reconstruction-based model, 
+originally proposed as a directed probabilistic graphical model for efficient approximate inference and learning \cite{kingma2013auto}. 
+VAEs have found widespread application in various domains including denoising, data compression, and anomaly detection.
+Another notable approach, DAGMM (Deep Autoencoding Gaussian Mixture Model), performs unsupervised anomaly detection 
+by generating low-dimensional representations and reconstruction errors through deep autoencoders \cite{zong2018deep}.
+Despite the prevalence of VAEs in reconstruction-based methods, significant variations exist in encoder design:
+Wang et al. employed simple Multilayer Perceptrons (MLPs) and Recurrent Neural Networks (RNNs) as encoders for air quality anomaly detection \cite{wang2019quality}.
+Zhang et al. developed a more sophisticated approach incorporating time-frequency analysis, using Temporal 
+Convolutional Networks (TCNs) as primary encoder components to separately reconstruct temporal and spectral features, 
+along with trend and residual components \cite{zhang2022tfad}.
+While these methods have demonstrated promising results, most existing approaches focus exclusively on time-domain modeling, 
+neglecting the potentially valuable information contained in frequency-domain representations. 
+This limitation may restrict their ability to detect certain types of anomalies that manifest more clearly in the spectral domain.
 
-\section{Modifications}
+\subsection{Transformer-Based Anomaly Detection Models}
 
-Modifying the template --- including but not limited to: adjusting
-margins, typeface sizes, line spacing, paragraph and list definitions,
-and the use of the \verb|\vspace| command to manually adjust the
-vertical spacing between elements of your work --- is not allowed.
+Since its inception, the Transformer architecture has achieved remarkable success in natural 
+language processing and has subsequently been widely adopted in computer vision applications. 
+Recently, an increasing number of Transformer-based models are being applied to time series tasks.
+Several notable Transformer-based approaches have advanced time series anomaly detection:
+The Anomaly Transformer introduces a novel Anomaly-Attention mechanism that simultaneously models prior 
+associations and sequential relationships to capture association discrepancies, effectively distinguishing 
+between normal and anomalous patterns \cite{xu2021anomaly}.
+Nam et al. proposed a nested window approach combining external and internal windows to align anomaly 
+scores from time-domain and frequency-domain reconstructions, enabling more precise identification of abnormal pattern boundaries \cite{nam2024breaking}.
+TranAD developed a two-stage encoder-decoder architecture stabilized through adversarial training, 
+significantly improving reconstruction performance \cite{tuli2022tranad}.
+AnomalyBert addressed the scarcity of real-world anomalies by proposing four distinct degradation methods to synthesize anomalous patterns, 
+effectively augmenting training data for rare anomaly cases \cite{jeong2023anomalybert}.
 
-{\bfseries Your document will be returned to you for revision if
-  modifications are discovered.}
+\subsection{Time Series Anomaly Detection Models Based on Time Domain Analysis}
 
-\section{Typefaces}
+Time series data typically exhibit multiple complex temporal patterns, 
+where decomposition techniques play a crucial role in extracting distinct components to facilitate deeper 
+understanding and analysis of temporal characteristics. Recent advances have demonstrated the 
+effectiveness of decomposition-based approaches in anomaly detection:
+Lei et al. developed a novel deep learning framework that 
+integrates time series decomposition with spectral analysis for enhanced anomaly detection \cite{lei2023novel}.
+Autoformer introduced an innovative inner decomposition block that endows deep forecasting 
+models with inherent progressive decomposition capabilities \cite{wu2021autoformer}.
+MICN validated the necessity and effectiveness of separately modeling complex temporal patterns 
+through multi-scale kernel decomposition of input data \cite{wang2023micn}.
+TFDNet proposed a specialized sequence decomposition method for long-horizon time series, 
+significantly improving both prediction efficiency and robustness \cite{luo2025tfdnet}.
+D3R presented a dynamic decomposition approach for long-period multivariate time series, 
+effectively utilizing external information to overcome limitations of local sliding windows \cite{wang2023drift}.
 
-The ``\verb|acmart|'' document class requires the use of the
-``Libertine'' typeface family. Your \TeX\ installation should include
-this set of packages. Please do not substitute other typefaces. The
-``\verb|lmodern|'' and ``\verb|ltimes|'' packages should not be used,
-as they will override the built-in typeface families.
+\section{COMMENTS}
 
-\section{Title Information}
+\subsection{Excessively long declarative sentences}
 
-The title of your work should use capital letters appropriately -
-\url{https://capitalizemytitle.com/} has useful rules for
-capitalization. Use the {\verb|title|} command to define the title of
-your work. If your work has a subtitle, define it with the
-{\verb|subtitle|} command.  Do not insert line breaks in your title.
+The first comment addresses the issue of overly long declarative sentences (Figure 1). 
+I think The sentence is too lengthy and somewhat confusing in its description. 
+It is suggested that it be split into two clearer statements, for example:
+By implementing PSI protocols based on different algorithmic schemes, one can better understand them. 
+Further, by comparing and analyzing these protocols in different application environments, one can maximize their value.
 
-If your title is lengthy, you must define a short version to be used
-in the page headers, to prevent overlapping text. The \verb|title|
-command has a ``short title'' parameter:
-\begin{verbatim}
-  \title[short title]{full title}
-\end{verbatim}
-
-\section{Authors and Affiliations}
-
-Each author must be defined separately for accurate metadata
-identification.  As an exception, multiple authors may share one
-affiliation. Authors' names should not be abbreviated; use full first
-names wherever possible. Include authors' e-mail addresses whenever
-possible.
-
-Grouping authors' names or e-mail addresses, or providing an ``e-mail
-alias,'' as shown below, is not acceptable:
-\begin{verbatim}
-  \author{Brooke Aster, David Mehldau}
-  \email{dave,judy,steve@university.edu}
-  \email{firstname.lastname@phillips.org}
-\end{verbatim}
-
-The \verb|authornote| and \verb|authornotemark| commands allow a note
-to apply to multiple authors --- for example, if the first two authors
-of an article contributed equally to the work.
-
-If your author list is lengthy, you must define a shortened version of
-the list of authors to be used in the page headers, to prevent
-overlapping text. The following command should be placed just after
-the last \verb|\author{}| definition:
-\begin{verbatim}
-  \renewcommand{\shortauthors}{McCartney, et al.}
-\end{verbatim}
-Omitting this command will force the use of a concatenated list of all
-of the authors' names, which may result in overlapping text in the
-page headers.
-
-The article template's documentation, available at
-\url{https://www.acm.org/publications/proceedings-template}, has a
-complete explanation of these commands and tips for their effective
-use.
-
-Note that authors' addresses are mandatory for journal articles.
-
-\section{Rights Information}
-
-Authors of any work published by ACM will need to complete a rights
-form. Depending on the kind of work, and the rights management choice
-made by the author, this may be copyright transfer, permission,
-license, or an OA (open access) agreement.
-
-Regardless of the rights management choice, the author will receive a
-copy of the completed rights form once it has been submitted. This
-form contains \LaTeX\ commands that must be copied into the source
-document. When the document source is compiled, these commands and
-their parameters add formatted text to several areas of the final
-document:
-\begin{itemize}
-\item the ``ACM Reference Format'' text on the first page.
-\item the ``rights management'' text on the first page.
-\item the conference information in the page header(s).
-\end{itemize}
-
-Rights information is unique to the work; if you are preparing several
-works for an event, make sure to use the correct set of commands with
-each of the works.
-
-The ACM Reference Format text is required for all articles over one
-page in length, and is optional for one-page articles (abstracts).
-
-\section{CCS Concepts and User-Defined Keywords}
-
-Two elements of the ``acmart'' document class provide powerful
-taxonomic tools for you to help readers find your work in an online
-search.
-
-The ACM Computing Classification System ---
-\url{https://www.acm.org/publications/class-2012} --- is a set of
-classifiers and concepts that describe the computing
-discipline. Authors can select entries from this classification
-system, via \url{https://dl.acm.org/ccs/ccs.cfm}, and generate the
-commands to be included in the \LaTeX\ source.
-
-User-defined keywords are a comma-separated list of words and phrases
-of the authors' choosing, providing a more flexible way of describing
-the research being presented.
-
-CCS concepts and user-defined keywords are required for for all
-articles over two pages in length, and are optional for one- and
-two-page articles (or abstracts).
-
-\section{Sectioning Commands}
-
-Your work should use standard \LaTeX\ sectioning commands:
-\verb|\section|, \verb|\subsection|, \verb|\subsubsection|,
-\verb|\paragraph|, and \verb|\subparagraph|. The sectioning levels up to
-\verb|\subsusection| should be numbered; do not remove the numbering
-from the commands.
-
-Simulating a sectioning command by setting the first word or words of
-a paragraph in boldface or italicized text is {\bfseries not allowed.}
-
-Below are examples of sectioning commands.
-
-\subsection{Subsection}
-\label{sec:subsection}
-
-This is a subsection.
-
-\subsubsection{Subsubsection}
-\label{sec:subsubsection}
-
-This is a subsubsection.
-
-\paragraph{Paragraph}
-
-This is a paragraph.
-
-\subparagraph{Subparagraph}
-
-This is a subparagraph.
-
-\section{Tables}
-
-The ``\verb|acmart|'' document class includes the ``\verb|booktabs|''
-package --- \url{https://ctan.org/pkg/booktabs} --- for preparing
-high-quality tables.
-
-Table captions are placed {\itshape above} the table.
-
-Because tables cannot be split across pages, the best placement for
-them is typically the top of the page nearest their initial cite.  To
-ensure this proper ``floating'' placement of tables, use the
-environment \textbf{table} to enclose the table's contents and the
-table caption.  The contents of the table itself must go in the
-\textbf{tabular} environment, to be aligned properly in rows and
-columns, with the desired horizontal and vertical rules.  Again,
-detailed instructions on \textbf{tabular} material are found in the
-\textit{\LaTeX\ User's Guide}.
-
-Immediately following this sentence is the point at which
-Table~\ref{tab:freq} is included in the input file; compare the
-placement of the table here with the table in the printed output of
-this document.
-
-\begin{table}
-  \caption{Frequency of Special Characters}
-  \label{tab:freq}
-  \begin{tabular}{ccl}
-    \toprule
-    Non-English or Math&Frequency&Comments\\
-    \midrule
-    \O & 1 in 1,000& For Swedish names\\
-    $\pi$ & 1 in 5& Common in math\\
-    \$ & 4 in 5 & Used in business\\
-    $\Psi^2_1$ & 1 in 40,000& Unexplained usage\\
-  \bottomrule
-\end{tabular}
-\end{table}
-
-To set a wider table, which takes up the whole width of the page's
-live area, use the environment \textbf{table*} to enclose the table's
-contents and the table caption.  As with a single-column table, this
-wide table will ``float'' to a location deemed more
-desirable. Immediately following this sentence is the point at which
-Table~\ref{tab:commands} is included in the input file; again, it is
-instructive to compare the placement of the table here with the table
-in the printed output of this document.
-
-\begin{table*}
-  \caption{Some Typical Commands}
-  \label{tab:commands}
-  \begin{tabular}{ccl}
-    \toprule
-    Command &A Number & Comments\\
-    \midrule
-    \texttt{{\char'134}author} & 100& Author \\
-    \texttt{{\char'134}table}& 300 & For tables\\
-    \texttt{{\char'134}table*}& 400& For wider tables\\
-    \bottomrule
-  \end{tabular}
-\end{table*}
-
-Always use midrule to separate table header rows from data rows, and
-use it only for this purpose. This enables assistive technologies to
-recognise table headers and support their users in navigating tables
-more easily.
-
-\section{Math Equations}
-You may want to display math equations in three distinct styles:
-inline, numbered or non-numbered display.  Each of the three are
-discussed in the next sections.
-
-\subsection{Inline (In-text) Equations}
-A formula that appears in the running text is called an inline or
-in-text formula.  It is produced by the \textbf{math} environment,
-which can be invoked with the usual
-\texttt{{\char'134}begin\,\ldots{\char'134}end} construction or with
-the short form \texttt{\$\,\ldots\$}. You can use any of the symbols
-and structures, from $\alpha$ to $\omega$, available in
-\LaTeX~\cite{Lamport:LaTeX}; this section will simply show a few
-examples of in-text equations in context. Notice how this equation:
-\begin{math}
-  \lim_{n\rightarrow \infty}x=0
-\end{math},
-set here in in-line math style, looks slightly different when
-set in display style.  (See next section).
-
-\subsection{Display Equations}
-A numbered display equation---one set off by vertical space from the
-text and centered horizontally---is produced by the \textbf{equation}
-environment. An unnumbered display equation is produced by the
-\textbf{displaymath} environment.
-
-Again, in either environment, you can use any of the symbols and
-structures available in \LaTeX\@; this section will just give a couple
-of examples of display equations in context.  First, consider the
-equation, shown as an inline equation above:
-\begin{equation}
-  \lim_{n\rightarrow \infty}x=0
-\end{equation}
-Notice how it is formatted somewhat differently in
-the \textbf{displaymath}
-environment.  Now, we'll enter an unnumbered equation:
-\begin{displaymath}
-  \sum_{i=0}^{\infty} x + 1
-\end{displaymath}
-and follow it with another numbered equation:
-\begin{equation}
-  \sum_{i=0}^{\infty}x_i=\int_{0}^{\pi+2} f
-\end{equation}
-just to demonstrate \LaTeX's able handling of numbering.
-
-\section{Figures}
-
-The ``\verb|figure|'' environment should be used for figures. One or
-more images can be placed within a figure. If your figure contains
-third-party material, you must clearly identify it as such, as shown
-in the example below.
 \begin{figure}[h]
   \centering
-  \includegraphics[width=\linewidth]{sample-franklin}
-  \caption{1907 Franklin Model D roadster. Photograph by Harris \&
-    Ewing, Inc. [Public domain], via Wikimedia
-    Commons. (\url{https://goo.gl/VLCRBB}).}
-  \Description{A woman and a girl in white dresses sit in an open car.}
+  \includegraphics[width=\linewidth]{./picture/excessive_1.png}
+  \caption{Excessively long declarative sentences}
+  \Description{My Comments on other people's papers.}
 \end{figure}
 
-Your figures should contain a caption which describes the figure to
-the reader.
+Similarly, the sentence is too long and repeats "cloud environment." (Figure 2) It is suggests that: 
+Split it into two sentences, for example: 
+PSI protocols have broad applications, including COVID-19 contact tracing, 
+address book lookup, and blockchain. Additionally, cloud environments, as a key scenario 
+for secure multiparty computation, heavily rely on PSI.
 
-Figure captions are placed {\itshape below} the figure.
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{./picture/excessive_2.png}
+  \caption{Excessively long declarative sentences and repeated words}
+  \Description{My Comments on other people's papers.}
+\end{figure}
 
-Every figure should also have a figure description unless it is purely
-decorative. These descriptions convey what’s in the image to someone
-who cannot see it. They are also used by search engine crawlers for
-indexing images, and when images cannot be loaded.
+\subsection{Passive sentences}
 
-A figure description must be unformatted plain text less than 2000
-characters long (including spaces).  {\bfseries Figure descriptions
-  should not repeat the figure caption – their purpose is to capture
-  important information that is not already provided in the caption or
-  the main text of the paper.} For figures that convey important and
-complex new information, a short text description may not be
-adequate. More complex alternative descriptions can be placed in an
-appendix and referenced in a short figure description. For example,
-provide a data table capturing the information in a bar chart, or a
-structured list representing a graph.  For additional information
-regarding how best to write figure descriptions and why doing this is
-so important, please see
-\url{https://www.acm.org/publications/taps/describing-figures/}.
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{./picture/passive_2.png}
+  \caption{Passive sentences}
+  \Description{My Comments on other people's papers.}
+\end{figure}
 
-\subsection{The ``Teaser Figure''}
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{./picture/passive_1.png}
+  \caption{Passive sentences and subject is too long}
+  \Description{My Comments on other people's papers.}
+\end{figure}
 
-A ``teaser figure'' is an image, or set of images in one figure, that
-are placed after all author and affiliation information, and before
-the body of the article, spanning the page. If you wish to have such a
-figure in your article, place the command immediately before the
-\verb|\maketitle| command:
-\begin{verbatim}
-  \begin{teaserfigure}
-    \includegraphics[width=\textwidth]{sampleteaser}
-    \caption{figure caption}
-    \Description{figure description}
-  \end{teaserfigure}
-\end{verbatim}
+An active sentence is better than a passive sentence, so this sentence (Figure 3) might be better stated this way:
+We developed a demo system for practical applications.
 
-\section{Citations and Bibliographies}
+Similarly, the recommended way of passive and the subject is too long (Figure 4) is: 
+We implement PSI protocols on the same platform and compare their efficiency by varying the bit 
+length of elements and the size of sets. This helps identify the most efficient scheme for specific environments.
 
-The use of \BibTeX\ for the preparation and formatting of one's
-references is strongly recommended. Authors' names should be complete
---- use full first names (``Donald E. Knuth'') not initials
-(``D. E. Knuth'') --- and the salient identifying features of a
-reference should be included: title, year, volume, number, pages,
-article DOI, etc.
+\subsection{Use of punctuation}
 
-The bibliography is included in your source document with these two
-commands, placed just before the \verb|\end{document}| command:
-\begin{verbatim}
-  \bibliographystyle{ACM-Reference-Format}
-  \bibliography{bibfile}
-\end{verbatim}
-where ``\verb|bibfile|'' is the name, without the ``\verb|.bib|''
-suffix, of the \BibTeX\ file.
+"Different countries and organizations have introduced laws and regulations 
+to protect privacy data, and data privacy protection has long been a hot issue."
+I think it should replace the comma with a semicolon, i.e., "...privacy data; data privacy protection...", 
+as the two parts are independent yet related clauses.
 
-Citations and references are numbered by default. A small number of
-ACM publications have citations and references formatted in the
-``author year'' style; for these exceptions, please include this
-command in the {\bfseries preamble} (before the command
-``\verb|\begin{document}|'') of your \LaTeX\ source:
-\begin{verbatim}
-  \citestyle{acmauthoryear}
-\end{verbatim}
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{./picture/punctuation_1.png}
+  \caption{Use of punctuation}
+  \Description{My Comments on other people's papers.}
+\end{figure}
 
+A term "machine learningbased" is missing a hyphen (Figure 6), resulting in incorrect word formation. 
+The correct form should be "machine learning-based," so a hyphen needs to be added.
 
-  Some examples.  A paginated journal article \cite{Abril07}, an
-  enumerated journal article \cite{Cohen07}, a reference to an entire
-  issue \cite{JCohen96}, a monograph (whole book) \cite{Kosiur01}, a
-  monograph/whole book in a series (see 2a in spec. document)
-  \cite{Harel79}, a divisible-book such as an anthology or compilation
-  \cite{Editor00} followed by the same example, however we only output
-  the series if the volume number is given \cite{Editor00a} (so
-  Editor00a's series should NOT be present since it has no vol. no.),
-  a chapter in a divisible book \cite{Spector90}, a chapter in a
-  divisible book in a series \cite{Douglass98}, a multi-volume work as
-  book \cite{Knuth97}, a couple of articles in a proceedings (of a
-  conference, symposium, workshop for example) (paginated proceedings
-  article) \cite{Andler79, Hagerup1993}, a proceedings article with
-  all possible elements \cite{Smith10}, an example of an enumerated
-  proceedings article \cite{VanGundy07}, an informally published work
-  \cite{Harel78}, a couple of preprints \cite{Bornmann2019,
-    AnzarootPBM14}, a doctoral dissertation \cite{Clarkson85}, a
-  master's thesis: \cite{anisi03}, an online document / world wide web
-  resource \cite{Thornburg01, Ablamowicz07, Poker06}, a video game
-  (Case 1) \cite{Obama08} and (Case 2) \cite{Novak03} and \cite{Lee05}
-  and (Case 3) a patent \cite{JoeScientist001}, work accepted for
-  publication \cite{rous08}, 'YYYYb'-test for prolific author
-  \cite{SaeediMEJ10} and \cite{SaeediJETC10}. Other cites might
-  contain 'duplicate' DOI and URLs (some SIAM articles)
-  \cite{Kirschmer:2010:AEI:1958016.1958018}. Boris / Barbara Beeton:
-  multi-volume works as books \cite{MR781536} and \cite{MR781537}. A
-  couple of citations with DOIs:
-  \cite{2004:ITE:1009386.1010128,Kirschmer:2010:AEI:1958016.1958018}. Online
-  citations: \cite{TUGInstmem, Thornburg01, CTANacmart}.
-  Artifacts: \cite{R} and \cite{UMassCitations}.
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{./picture/punctuation_2.png}
+  \caption{Use of punctuation}
+  \Description{My Comments on other people's papers.}
+\end{figure}
 
-\section{Acknowledgments}
+\subsection{Confusing statements}
 
-Identification of funding sources and other support, and thanks to
-individuals and groups that assisted in the research and the
-preparation of the work should be included in an acknowledgment
-section, which is placed just before the reference section in your
-document.
+The logical connection is unclear and confusing (Figure 7), as "through a technology" does not flow coherently with the main clause. 
+I recommend rewriting this part of the sentence, for example:
+"Although China lacks iconic commercial applications of PSI, 
+enterprises holding sensitive data urgently need this technology—it enables 
+deep data mining while protecting privacy."
 
-This section has a special environment:
-\begin{verbatim}
-  \begin{acks}
-  ...
-  \end{acks}
-\end{verbatim}
-so that the information contained therein can be more easily collected
-during the article metadata extraction phase, and to ensure
-consistency in the spelling of the section heading.
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{./picture/confusing_1.png}
+  \caption{Confusing statements}
+  \Description{My Comments on other people's papers.}
+\end{figure}
 
-Authors should not prepare this section as a numbered or unnumbered {\verb|\section|}; please use the ``{\verb|acks|}'' environment.
+\subsection{Grammar errors}
 
-\section{Appendices}
+There is a grammatical error (Figure 8), 'the' should be added before the sentence.
 
-If your work needs an appendix, add it before the
-``\verb|\end{document}|'' command at the conclusion of your source
-document.
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{./picture/grammar_1.png}
+  \caption{Grammar errors}
+  \Description{My Comments on other people's papers.}
+\end{figure}
 
-Start the appendix with the ``\verb|appendix|'' command:
-\begin{verbatim}
-  \appendix
-\end{verbatim}
-and note that in the appendix, sections are lettered, not
-numbered. This document has two appendices, demonstrating the section
-and subsection identification method.
+Similarly, there is a grammatical error (Figure 9), 'the' should be added before the 'database security'.
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{./picture/grammar_2.png}
+  \caption{Grammar errors}
+  \Description{My Comments on other people's papers.}
+\end{figure}
 
-\section{Multi-language papers}
+\subsection{Use of conjuctions}
 
-Papers may be written in languages other than English or include
-titles, subtitles, keywords and abstracts in different languages (as a
-rule, a paper in a language other than English should include an
-English title and an English abstract).  Use \verb|language=...| for
-every language used in the paper.  The last language indicated is the
-main language of the paper.  For example, a French paper with
-additional titles and abstracts in English and German may start with
-the following command
-\begin{verbatim}
-\documentclass[sigconf, language=english, language=german,
-               language=french]{acmart}
-\end{verbatim}
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{./picture/conjuction_1.png}
+  \caption{Use of conjuctions}
+  \Description{My Comments on other people's papers.}
+\end{figure}
 
-The title, subtitle, keywords and abstract will be typeset in the main
-language of the paper.  The commands \verb|\translatedXXX|, \verb|XXX|
-begin title, subtitle and keywords, can be used to set these elements
-in the other languages.  The environment \verb|translatedabstract| is
-used to set the translation of the abstract.  These commands and
-environment have a mandatory first argument: the language of the
-second argument.  See \verb|sample-sigconf-i13n.tex| file for examples
-of their usage.
-
-\section{SIGCHI Extended Abstracts}
-
-The ``\verb|sigchi-a|'' template style (available only in \LaTeX\ and
-not in Word) produces a landscape-orientation formatted article, with
-a wide left margin. Three environments are available for use with the
-``\verb|sigchi-a|'' template style, and produce formatted output in
-the margin:
-\begin{description}
-\item[\texttt{sidebar}:]  Place formatted text in the margin.
-\item[\texttt{marginfigure}:] Place a figure in the margin.
-\item[\texttt{margintable}:] Place a table in the margin.
-\end{description}
+Logical connection missing (Figure 10): The original sentence reads: 
+"In the above cases, it can be found that most privacy leaks have one thing in common: 
+private data is stored in a centralized, remote cloud service provider's server database, 
+and these stores important personal or corporate privacy data." 
+Suggestion: Add a conjunction (such as "which") before "these stores," 
+and revise it to: "...database, which stores important personal or corporate privacy data." 
+This modification improves the logical flow and clarity of the sentence.
 
 %%
 %% The acknowledgments section is defined using the "acks" environment
 %% (and NOT an unnumbered section). This ensures the proper
 %% identification of the section in the article metadata, and the
 %% consistent spelling of the heading.
-\begin{acks}
-To Robert, for the bagels and explaining CMYK and color spaces.
-\end{acks}
 
 %%
 %% The next two lines define the bibliography style to be used, and
 %% the bibliography file.
 \bibliographystyle{ACM-Reference-Format}
-\bibliography{sample-base}
+\bibliography{mywork}
 
 
 %%
 %% If your work has an appendix, this is the place to put it.
-\appendix
-
-\section{Research Methods}
-
-\subsection{Part One}
-
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi
-malesuada, quam in pulvinar varius, metus nunc fermentum urna, id
-sollicitudin purus odio sit amet enim. Aliquam ullamcorper eu ipsum
-vel mollis. Curabitur quis dictum nisl. Phasellus vel semper risus, et
-lacinia dolor. Integer ultricies commodo sem nec semper.
-
-\subsection{Part Two}
-
-Etiam commodo feugiat nisl pulvinar pellentesque. Etiam auctor sodales
-ligula, non varius nibh pulvinar semper. Suspendisse nec lectus non
-ipsum convallis congue hendrerit vitae sapien. Donec at laoreet
-eros. Vivamus non purus placerat, scelerisque diam eu, cursus
-ante. Etiam aliquam tortor auctor efficitur mattis.
-
-\section{Online Resources}
-
-Nam id fermentum dui. Suspendisse sagittis tortor a nulla mollis, in
-pulvinar ex pretium. Sed interdum orci quis metus euismod, et sagittis
-enim maximus. Vestibulum gravida massa ut felis suscipit
-congue. Quisque mattis elit a risus ultrices commodo venenatis eget
-dui. Etiam sagittis eleifend elementum.
-
-Nam interdum magna at lectus dignissim, ac dignissim lorem
-rhoncus. Maecenas eu arcu ac neque placerat aliquam. Nunc pulvinar
-massa et mattis lacinia.
-
 \end{document}
 \endinput
 %%
